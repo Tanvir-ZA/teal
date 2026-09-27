@@ -8,27 +8,45 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
+    const checkAdmin = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (data.session) {
-        setIsLoggedIn(true);
+      if (!session) {
+        setLoading(false);
+        return;
       }
 
+      const { data, error } = await supabase.rpc("is_admin");
+
+      if (error) {
+        console.log("ADMIN CHECK ERROR:", error);
+        setLoading(false);
+        return;
+      }
+
+      setIsAdmin(data === true);
       setLoading(false);
     };
 
-    checkUser();
+    checkAdmin();
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-gray-500">
+          Checking access...
+        </p>
+      </div>
+    );
   }
 
-  if (!isLoggedIn) {
+  if (!isAdmin) {
     return <Navigate to="/admin-login" replace />;
   }
 

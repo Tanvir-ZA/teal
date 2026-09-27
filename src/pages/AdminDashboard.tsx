@@ -3,6 +3,12 @@ import { supabase } from "../lib/supabase";
 import type { IOrder } from "../types/order";
 import type { IProduct } from "../types/product";
 
+interface IProductAnalytics {
+  product_id: number;
+  views: number;
+  add_to_cart: number;
+}
+
 const AdminDashboard = () => {
   // =========================
   // ORDERS
@@ -17,6 +23,14 @@ const AdminDashboard = () => {
 
   const [products, setProducts] = useState<IProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+
+  // =========================
+  // ANALYTICS
+  // =========================
+
+  const [analytics, setAnalytics] = useState<
+    IProductAnalytics[]
+  >([]);
 
   // =========================
   // ADD PRODUCT
@@ -43,10 +57,7 @@ const AdminDashboard = () => {
   const [editStock, setEditStock] = useState("");
   const [editActive, setEditActive] = useState(true);
 
-  // Existing images that are currently kept
   const [editImages, setEditImages] = useState<string[]>([]);
-
-  // New images selected during edit
   const [editNewImages, setEditNewImages] = useState<File[]>([]);
 
   // =========================
@@ -90,12 +101,30 @@ const AdminDashboard = () => {
   };
 
   // =========================
+  // FETCH ANALYTICS
+  // =========================
+
+  const fetchAnalytics = async () => {
+    const { data, error } = await supabase
+      .from("product_analytics")
+      .select("product_id, views, add_to_cart");
+
+    if (error) {
+      console.log("ANALYTICS FETCH ERROR:", error);
+      return;
+    }
+
+    setAnalytics(data || []);
+  };
+
+  // =========================
   // INITIAL LOAD
   // =========================
 
   useEffect(() => {
     fetchOrders();
     fetchProducts();
+    fetchAnalytics();
   }, []);
 
   // =========================
@@ -105,6 +134,24 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/admin-login";
+  };
+
+  // =========================
+  // GET PRODUCT ANALYTICS
+  // =========================
+
+  const getProductAnalytics = (
+    productId: number
+  ) => {
+    return (
+      analytics.find(
+        (item) => item.product_id === productId
+      ) || {
+        product_id: productId,
+        views: 0,
+        add_to_cart: 0,
+      }
+    );
   };
 
   // =========================
@@ -129,7 +176,6 @@ const AdminDashboard = () => {
     try {
       const imageUrls: string[] = [];
 
-      // Upload images
       for (const image of productImages) {
         const fileName = `${Date.now()}-${image.name}`;
 
@@ -155,7 +201,6 @@ const AdminDashboard = () => {
         imageUrls.push(data.publicUrl);
       }
 
-      // Insert product
       const {
         data: newProduct,
         error: productError,
@@ -182,17 +227,13 @@ const AdminDashboard = () => {
         return;
       }
 
-      if (
-        newProduct &&
-        newProduct.length > 0
-      ) {
+      if (newProduct && newProduct.length > 0) {
         setProducts((currentProducts) => [
           newProduct[0],
           ...currentProducts,
         ]);
       }
 
-      // Reset form
       setProductName("");
       setProductPrice("");
       setProductCategory("");
@@ -202,11 +243,7 @@ const AdminDashboard = () => {
 
       alert("Product added successfully!");
     } catch (error) {
-      console.log(
-        "ADD PRODUCT ERROR:",
-        error
-      );
-
+      console.log("ADD PRODUCT ERROR:", error);
       alert("Something went wrong.");
     }
   };
@@ -218,30 +255,19 @@ const AdminDashboard = () => {
   const handleEditClick = (
     product: IProduct
   ) => {
-    console.log(
-      "EDIT BUTTON CLICKED:",
-      product
-    );
-
     setEditingProduct(product);
 
     setEditName(product.name);
     setEditPrice(String(product.price));
     setEditCategory(product.category);
-    setEditDescription(
-      product.description || ""
-    );
+    setEditDescription(product.description || "");
     setEditStock(String(product.stock));
     setEditActive(product.is_active);
 
-    // Load existing images
     setEditImages(
-      product.images
-        ? [...product.images]
-        : []
+      product.images ? [...product.images] : []
     );
 
-    // Clear previously selected new images
     setEditNewImages([]);
   };
 
@@ -295,9 +321,7 @@ const AdminDashboard = () => {
           pathPrefix.length
         );
 
-      return decodeURIComponent(
-        encodedPath
-      );
+      return decodeURIComponent(encodedPath);
     } catch (error) {
       console.log(
         "IMAGE URL PARSE ERROR:",
@@ -335,15 +359,6 @@ const AdminDashboard = () => {
     }
 
     try {
-      console.log(
-        "UPDATING PRODUCT:",
-        editingProduct.id
-      );
-
-      // ---------------------------------
-      // 1. Find removed images
-      // ---------------------------------
-
       const oldImages =
         editingProduct.images || [];
 
@@ -352,15 +367,6 @@ const AdminDashboard = () => {
           (oldImage) =>
             !editImages.includes(oldImage)
         );
-
-      console.log(
-        "REMOVED IMAGES:",
-        removedImages
-      );
-
-      // ---------------------------------
-      // 2. Delete removed images
-      // ---------------------------------
 
       const removedFilePaths: string[] = [];
 
@@ -377,27 +383,14 @@ const AdminDashboard = () => {
         }
       );
 
-      console.log(
-        "REMOVED STORAGE PATHS:",
-        removedFilePaths
-      );
-
-      if (
-        removedFilePaths.length > 0
-      ) {
+      if (removedFilePaths.length > 0) {
         const {
-          data: deletedFiles,
           error: storageDeleteError,
         } = await supabase.storage
           .from("product-img")
           .remove(
             removedFilePaths
           );
-
-        console.log(
-          "DELETED EDIT IMAGES:",
-          deletedFiles
-        );
 
         if (storageDeleteError) {
           console.log(
@@ -412,10 +405,6 @@ const AdminDashboard = () => {
           return;
         }
       }
-
-      // ---------------------------------
-      // 3. Upload new images
-      // ---------------------------------
 
       const newImageUrls: string[] = [];
 
@@ -437,10 +426,7 @@ const AdminDashboard = () => {
             uploadError
           );
 
-          alert(
-            uploadError.message
-          );
-
+          alert(uploadError.message);
           return;
         }
 
@@ -456,28 +442,10 @@ const AdminDashboard = () => {
         );
       }
 
-      console.log(
-        "NEW IMAGE URLS:",
-        newImageUrls
-      );
-
-      // ---------------------------------
-      // 4. Combine existing + new images
-      // ---------------------------------
-
       const finalImages = [
         ...editImages,
         ...newImageUrls,
       ];
-
-      console.log(
-        "FINAL PRODUCT IMAGES:",
-        finalImages
-      );
-
-      // ---------------------------------
-      // 5. Update product
-      // ---------------------------------
 
       const {
         data,
@@ -509,15 +477,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      console.log(
-        "UPDATED PRODUCT:",
-        data
-      );
-
-      // ---------------------------------
-      // 6. Update UI
-      // ---------------------------------
-
       if (
         data &&
         data.length > 0
@@ -538,10 +497,6 @@ const AdminDashboard = () => {
         "Product updated successfully!"
       );
 
-      // ---------------------------------
-      // 7. Reset edit state
-      // ---------------------------------
-
       setEditingProduct(null);
       setEditImages([]);
       setEditNewImages([]);
@@ -558,7 +513,7 @@ const AdminDashboard = () => {
   };
 
   // =========================
-  // DELETE PRODUCT + STORAGE IMAGES
+  // DELETE PRODUCT + STORAGE
   // =========================
 
   const handleDeleteProduct = async (
@@ -574,7 +529,6 @@ const AdminDashboard = () => {
     }
 
     try {
-      // 1. Get product images
       const {
         data: product,
         error: fetchError,
@@ -594,12 +548,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      console.log(
-        "PRODUCT IMAGES FROM DATABASE:",
-        product?.images
-      );
-
-      // 2. Convert image URLs to Storage paths
       const filePaths: string[] = [];
 
       if (
@@ -620,12 +568,6 @@ const AdminDashboard = () => {
         );
       }
 
-      console.log(
-        "FILES TO DELETE FROM STORAGE:",
-        filePaths
-      );
-
-      // 3. Delete images
       if (filePaths.length > 0) {
         const {
           data: deletedFiles,
@@ -633,16 +575,6 @@ const AdminDashboard = () => {
         } = await supabase.storage
           .from("product-img")
           .remove(filePaths);
-
-        console.log(
-          "DELETED STORAGE FILES:",
-          deletedFiles
-        );
-
-        console.log(
-          "STORAGE DELETE ERROR:",
-          storageError
-        );
 
         if (storageError) {
           alert(
@@ -664,7 +596,6 @@ const AdminDashboard = () => {
         }
       }
 
-      // 4. Delete product
       const {
         error: deleteError,
       } = await supabase
@@ -681,19 +612,24 @@ const AdminDashboard = () => {
           deleteError
         );
 
-        alert(
-          deleteError.message
-        );
-
+        alert(deleteError.message);
         return;
       }
 
-      // 5. Remove from UI
       setProducts(
         (currentProducts) =>
           currentProducts.filter(
             (product) =>
               product.id !==
+              productId
+          )
+      );
+
+      setAnalytics(
+        (currentAnalytics) =>
+          currentAnalytics.filter(
+            (item) =>
+              item.product_id !==
               productId
           )
       );
@@ -869,9 +805,7 @@ const AdminDashboard = () => {
           </h2>
 
           <form
-            onSubmit={
-              handleAddProduct
-            }
+            onSubmit={handleAddProduct}
             className="grid gap-5 md:grid-cols-2"
           >
 
@@ -953,9 +887,7 @@ const AdminDashboard = () => {
               </label>
 
               <textarea
-                value={
-                  productDescription
-                }
+                value={productDescription}
                 onChange={(e) =>
                   setProductDescription(
                     e.target.value
@@ -979,8 +911,7 @@ const AdminDashboard = () => {
                 onChange={(e) =>
                   setProductImages(
                     Array.from(
-                      e.target.files ||
-                        []
+                      e.target.files || []
                     )
                   )
                 }
@@ -1014,13 +945,9 @@ const AdminDashboard = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setEditingProduct(
-                    null
-                  );
+                  setEditingProduct(null);
                   setEditImages([]);
-                  setEditNewImages(
-                    []
-                  );
+                  setEditNewImages([]);
                 }}
                 className="rounded-lg bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300"
               >
@@ -1030,9 +957,7 @@ const AdminDashboard = () => {
             </div>
 
             <form
-              onSubmit={
-                handleUpdateProduct
-              }
+              onSubmit={handleUpdateProduct}
               className="grid gap-5 md:grid-cols-2"
             >
 
@@ -1170,15 +1095,10 @@ const AdminDashboard = () => {
                   className="w-full rounded-lg border p-3"
                 />
 
-                {editNewImages.length >
-                  0 && (
+                {editNewImages.length > 0 && (
                   <p className="mt-2 text-sm text-gray-500">
-                    {
-                      editNewImages.length
-                    }{" "}
-                    new image
-                    {editNewImages.length >
-                    1
+                    {editNewImages.length} new image
+                    {editNewImages.length > 1
                       ? "s"
                       : ""}{" "}
                     selected.
@@ -1194,9 +1114,7 @@ const AdminDashboard = () => {
                 </label>
 
                 <textarea
-                  value={
-                    editDescription
-                  }
+                  value={editDescription}
                   onChange={(e) =>
                     setEditDescription(
                       e.target.value
@@ -1214,13 +1132,10 @@ const AdminDashboard = () => {
 
                   <input
                     type="checkbox"
-                    checked={
-                      editActive
-                    }
+                    checked={editActive}
                     onChange={(e) =>
                       setEditActive(
-                        e.target
-                          .checked
+                        e.target.checked
                       )
                     }
                     className="h-5 w-5"
@@ -1264,8 +1179,7 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          {products.length ===
-          0 ? (
+          {products.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-gray-500">
                 No products found.
@@ -1275,117 +1189,148 @@ const AdminDashboard = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
               {products.map(
-                (product) => (
+                (product) => {
+                  const productAnalytics =
+                    getProductAnalytics(
+                      product.id
+                    );
 
-                  <div
-                    key={product.id}
-                    className="overflow-hidden rounded-2xl border bg-white"
-                  >
+                  return (
+                    <div
+                      key={product.id}
+                      className="overflow-hidden rounded-2xl border bg-white"
+                    >
 
-                    {/* IMAGE */}
+                      {/* IMAGE */}
 
-                    <div className="aspect-square bg-gray-100">
+                      <div className="aspect-square bg-gray-100">
 
-                      {product.images?.[0] ? (
-                        <img
-                          src={
-                            product
-                              .images[0]
-                          }
-                          alt={
-                            product.name
-                          }
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-gray-400">
-                          No Image
-                        </div>
-                      )}
-
-                    </div>
-
-                    {/* INFO */}
-
-                    <div className="p-5">
-
-                      <div className="mb-2 flex items-start justify-between gap-3">
-
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {
-                              product.category
+                        {product.images?.[0] ? (
+                          <img
+                            src={
+                              product.images[0]
                             }
-                          </p>
-
-                          <h3 className="mt-1 text-lg font-bold">
-                            {
+                            alt={
                               product.name
                             }
-                          </h3>
-                        </div>
-
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            product.is_active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {product.is_active
-                            ? "Active"
-                            : "Inactive"}
-                        </span>
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-gray-400">
+                            No Image
+                          </div>
+                        )}
 
                       </div>
 
-                      <p className="text-xl font-bold">
-                        ৳
-                        {
-                          product.price
-                        }
-                      </p>
+                      {/* INFO */}
 
-                      <p className="mt-2 text-sm text-gray-500">
-                        Stock:{" "}
-                        {
-                          product.stock
-                        }
-                      </p>
+                      <div className="p-5">
 
-                      {/* BUTTONS */}
+                        <div className="mb-2 flex items-start justify-between gap-3">
 
-                      <div className="mt-5 flex gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              {
+                                product.category
+                              }
+                            </p>
 
-                        <button
-                          onClick={() =>
-                            handleEditClick(
-                              product
-                            )
-                          }
-                          className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-                        >
-                          Edit
-                        </button>
+                            <h3 className="mt-1 text-lg font-bold">
+                              {
+                                product.name
+                              }
+                            </h3>
+                          </div>
 
-                        <button
-                          onClick={() =>
-                            handleDeleteProduct(
-                              product.id
-                            )
-                          }
-                          className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600"
-                        >
-                          Delete
-                        </button>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              product.is_active
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {product.is_active
+                              ? "Active"
+                              : "Inactive"}
+                          </span>
+
+                        </div>
+
+                        <p className="text-xl font-bold">
+                          ৳{product.price}
+                        </p>
+
+                        <p className="mt-2 text-sm text-gray-500">
+                          Stock:{" "}
+                          {product.stock}
+                        </p>
+
+                        {/* ANALYTICS */}
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+
+                          <div className="rounded-xl bg-gray-50 p-3">
+                            <p className="text-xs text-gray-500">
+                              Views
+                            </p>
+
+                            <p className="mt-1 text-xl font-bold">
+                              👁️{" "}
+                              {
+                                productAnalytics.views
+                              }
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl bg-gray-50 p-3">
+                            <p className="text-xs text-gray-500">
+                              Add to Cart
+                            </p>
+
+                            <p className="mt-1 text-xl font-bold">
+                              🛒{" "}
+                              {
+                                productAnalytics.add_to_cart
+                              }
+                            </p>
+                          </div>
+
+                        </div>
+
+                        {/* BUTTONS */}
+
+                        <div className="mt-5 flex gap-3">
+
+                          <button
+                            onClick={() =>
+                              handleEditClick(
+                                product
+                              )
+                            }
+                            className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleDeleteProduct(
+                                product.id
+                              )
+                            }
+                            className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600"
+                          >
+                            Delete
+                          </button>
+
+                        </div>
 
                       </div>
 
                     </div>
-
-                  </div>
-
-                )
+                  );
+                }
               )}
 
             </div>
@@ -1407,8 +1352,7 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          {orders.length ===
-          0 ? (
+          {orders.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-gray-500">
                 No orders found.
@@ -1429,10 +1373,7 @@ const AdminDashboard = () => {
 
                       <div>
                         <p className="text-sm text-gray-500">
-                          Order #
-                          {
-                            order.id
-                          }
+                          Order #{order.id}
                         </p>
 
                         <h3 className="mt-1 text-lg font-bold">
@@ -1446,9 +1387,7 @@ const AdminDashboard = () => {
                         value={
                           order.status
                         }
-                        onChange={(
-                          e
-                        ) =>
+                        onChange={(e) =>
                           handleOrderStatusChange(
                             order.id,
                             e.target
@@ -1482,9 +1421,7 @@ const AdminDashboard = () => {
                         </p>
 
                         <p className="font-medium">
-                          {
-                            order.phone
-                          }
+                          {order.phone}
                         </p>
                       </div>
 
@@ -1494,9 +1431,7 @@ const AdminDashboard = () => {
                         </p>
 
                         <p className="font-medium">
-                          {
-                            order.address
-                          }
+                          {order.address}
                         </p>
                       </div>
 
@@ -1506,10 +1441,7 @@ const AdminDashboard = () => {
                         </p>
 
                         <p className="font-bold">
-                          ৳
-                          {
-                            order.total_price
-                          }
+                          ৳{order.total_price}
                         </p>
                       </div>
 
@@ -1523,9 +1455,7 @@ const AdminDashboard = () => {
                         </p>
 
                         <p className="mt-1 text-sm">
-                          {
-                            order.note
-                          }
+                          {order.note}
                         </p>
 
                       </div>
@@ -1546,9 +1476,7 @@ const AdminDashboard = () => {
                           ) => (
 
                             <div
-                              key={
-                                index
-                              }
+                              key={index}
                               className="flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm"
                             >
 

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { IProduct } from "../types/product";
+import { supabase } from "../lib/supabase";
 
 interface CartItem extends IProduct {
   quantity: number;
@@ -25,11 +26,29 @@ interface CartProviderProps {
 export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
+  const trackAddToCart = async (productId: number) => {
+    const { error } = await supabase.rpc(
+      "increment_product_add_to_cart",
+      {
+        product_id_input: productId,
+      }
+    );
+
+    if (error) {
+      console.log(
+        "ADD TO CART TRACKING ERROR:",
+        error
+      );
+    }
+  };
+
   const addToCart = (product: IProduct) => {
     // Product out of stock হলে add করা যাবে না
     if (product.stock <= 0) {
       return;
     }
+
+    let canAdd = false;
 
     setCart((currentCart) => {
       const existingProduct = currentCart.find(
@@ -43,6 +62,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
           return currentCart;
         }
 
+        canAdd = true;
+
         return currentCart.map((item) =>
           item.id === product.id
             ? {
@@ -54,6 +75,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       }
 
       // নতুন product cart-এ add
+      canAdd = true;
+
       return [
         ...currentCart,
         {
@@ -62,6 +85,11 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         },
       ];
     });
+
+    // Cart-এ successfully add হলে tracking
+    if (canAdd) {
+      trackAddToCart(product.id);
+    }
   };
 
   const removeFromCart = (productId: number) => {

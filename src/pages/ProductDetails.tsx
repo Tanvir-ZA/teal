@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
@@ -13,6 +13,8 @@ const ProductDetails = () => {
 
   const [currentImage, setCurrentImage] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  const viewTracked = useRef(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -39,6 +41,30 @@ const ProductDetails = () => {
     };
 
     fetchProduct();
+  }, [id]);
+
+  // Product View Tracking
+  useEffect(() => {
+    if (!id || viewTracked.current) {
+      return;
+    }
+
+    viewTracked.current = true;
+
+    const trackProductView = async () => {
+      const { error } = await supabase.rpc(
+        "increment_product_view",
+        {
+          product_id_input: Number(id),
+        }
+      );
+
+      if (error) {
+        console.log("PRODUCT VIEW TRACKING ERROR:", error);
+      }
+    };
+
+    trackProductView();
   }, [id]);
 
   if (loading) {
@@ -111,10 +137,8 @@ const ProductDetails = () => {
   return (
     <main className="mx-auto max-w-7xl px-4 py-16">
       <div className="grid gap-10 md:grid-cols-2">
-
-        {/* Images */}
+        {/* Product Images */}
         <div>
-          {/* Main Image */}
           <div
             className="relative overflow-hidden rounded-xl"
             onTouchStart={handleTouchStart}
@@ -126,7 +150,6 @@ const ProductDetails = () => {
               className="h-[500px] w-full object-cover"
             />
 
-            {/* Previous Button */}
             {product.images.length > 1 && (
               <button
                 onClick={previousImage}
@@ -136,7 +159,6 @@ const ProductDetails = () => {
               </button>
             )}
 
-            {/* Next Button */}
             {product.images.length > 1 && (
               <button
                 onClick={nextImage}
@@ -147,7 +169,7 @@ const ProductDetails = () => {
             )}
           </div>
 
-          {/* Thumbnails */}
+          {/* Image Thumbnails */}
           {product.images.length > 1 && (
             <div className="mt-4 flex gap-3 overflow-x-auto">
               {product.images.map((image, index) => (
@@ -206,7 +228,7 @@ const ProductDetails = () => {
             )}
           </div>
 
-          {/* Add to Cart */}
+          {/* Add To Cart */}
           <button
             onClick={() => addToCart(product)}
             disabled={isOutOfStock}
