@@ -9,38 +9,111 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminProducts from "./pages/AdminProducts";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminOrders from "./pages/AdminOrders";
 
 function App() {
   return (
     <CartProvider>
       <BrowserRouter>
-        <Navbar />
-
         <Routes>
-          <Route path="/" element={<Home />} />
-
-          <Route path="/shop" element={<Shop />} />
+          {/* ========================= */}
+          {/* CUSTOMER WEBSITE */}
+          {/* ========================= */}
 
           <Route
-            path="/product/:id"
-            element={<ProductDetails />}
+            path="/*"
+            element={
+              <>
+                <Navbar />
+
+                <Routes>
+                  <Route
+                    path="/"
+                    element={<Home />}
+                  />
+
+                  <Route
+                    path="/shop"
+                    element={<Shop />}
+                  />
+
+                  <Route
+                    path="/product/:id"
+                    element={<ProductDetails />}
+                  />
+
+                  <Route
+                    path="/cart"
+                    element={<Cart />}
+                  />
+
+                  <Route
+                    path="/checkout"
+                    element={<Checkout />}
+                  />
+
+                  <Route
+                    path="/order-success"
+                    element={<OrderSuccess />}
+                  />
+                </Routes>
+              </>
+            }
           />
 
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/order-success" element={<OrderSuccess />} />
+          {/* ========================= */}
+          {/* ADMIN LOGIN */}
+          {/* ========================= */}
+
+          <Route
+            path="/admin-login"
+            element={<AdminLogin />}
+          />
+
+          {/* ========================= */}
+          {/* ADMIN DASHBOARD */}
+          {/* ========================= */}
+
           <Route
             path="/admin"
             element={
               <ProtectedRoute>
-                <AdminDashboard />
+                <AdminLayout>
+                  <AdminDashboard />
+                </AdminLayout>
               </ProtectedRoute>
             }
-          /><Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
+          />
 
+          {/* ========================= */}
+          {/* ADMIN PRODUCTS */}
+          {/* ========================= */}
+
+          <Route
+            path="/admin/products"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminProducts />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/orders"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminOrders />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </CartProvider>
