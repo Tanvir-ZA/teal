@@ -1,7 +1,39 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
-import { products } from "../data/products";
+import { supabase } from "../lib/supabase";
+import type { IProduct } from "../types/product";
 
 const Home = () => {
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (error) {
+        console.log(
+          "FEATURED PRODUCTS ERROR:",
+          error
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      setProducts(data || []);
+      setLoading(false);
+    };
+
+    fetchFeaturedProducts();
+  }, []);
+
   return (
     <main>
       {/* Hero Section */}
@@ -16,17 +48,20 @@ const Home = () => {
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-gray-600">
-            Discover comfortable and stylish clothing made for your everyday
-            look.
+            Discover comfortable and stylish clothing made for your
+            everyday look.
           </p>
 
-          <button className="mt-8 rounded-lg bg-black px-6 py-3 font-semibold text-white">
+          <Link
+            to="/shop"
+            className="mt-8 inline-block rounded-lg bg-black px-6 py-3 font-semibold text-white"
+          >
             Shop Now
-          </button>
+          </Link>
         </div>
       </section>
 
-      {/* Products Section */}
+      {/* Featured Products */}
       <section className="mx-auto max-w-7xl px-4 py-20">
         <div className="mb-10">
           <p className="text-sm font-semibold uppercase tracking-widest text-gray-500">
@@ -38,11 +73,28 @@ const Home = () => {
           </h2>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="py-16 text-center">
+            <p className="text-gray-500">
+              Loading products...
+            </p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-gray-500">
+              No products available.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

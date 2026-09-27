@@ -9,6 +9,9 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
     const { addToCart } = useCart();
 
+    const isOutOfStock = product.stock === 0;
+    const isLowStock = product.stock === 1;
+
     return (
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
             <Link to={`/product/${product.id}`}>
@@ -20,7 +23,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </Link>
 
             <div className="p-5">
-                <p className="text-sm text-gray-500">{product.category}</p>
+                <p className="text-sm text-gray-500">
+                    {product.category}
+                </p>
 
                 <h3 className="mt-1 text-xl font-semibold">
                     {product.name}
@@ -29,6 +34,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 <p className="mt-2 text-lg font-bold">
                     ৳{product.price}
                 </p>
+
+                {/* Stock Status */}
+                <div className="mt-2">
+                    {isOutOfStock ? (
+                        <p className="text-sm font-semibold text-red-600">
+                            Out of Stock
+                        </p>
+                    ) : isLowStock ? (
+                        <p className="text-sm font-semibold text-orange-600">
+                            Only 1 left
+                        </p>
+                    ) : (
+                        <p className="text-sm font-medium text-green-600">
+                            {product.stock} left
+                        </p>
+                    )}
+                </div>
 
                 <div className="mt-4 flex gap-2">
                     <Link
@@ -40,9 +62,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
                     <button
                         onClick={() => addToCart(product)}
-                        className="flex-1 rounded-lg border border-black py-3 text-sm font-semibold"
+                        disabled={isOutOfStock}
+                        className={`flex-1 rounded-lg py-3 text-sm font-semibold transition ${
+                            isOutOfStock
+                                ? "cursor-not-allowed bg-gray-200 text-gray-400"
+                                : "border border-black hover:bg-black hover:text-white"
+                        }`}
                     >
-                        Add to Cart
+                        {isOutOfStock ? "Out of Stock" : "Add to Cart"}
                     </button>
                 </div>
             </div>

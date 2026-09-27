@@ -1,18 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { products } from "../data/products";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
+import type { IProduct } from "../types/product";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
 
-  const product = products.find(
-    (product) => product.id === Number(id)
-  );
+  const [product, setProduct] = useState<IProduct | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [currentImage, setCurrentImage] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", Number(id))
+        .eq("is_active", true)
+        .single();
+
+      if (error) {
+        console.log("PRODUCT DETAILS ERROR:", error);
+        setProduct(null);
+      } else {
+        setProduct(data);
+      }
+
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-gray-500">Loading product...</p>
+      </main>
+    );
+  }
 
   if (!product) {
     return (
@@ -32,6 +67,9 @@ const ProductDetails = () => {
       </main>
     );
   }
+
+  const isOutOfStock = product.stock === 0;
+  const isLowStock = product.stock === 1;
 
   const nextImage = () => {
     setCurrentImage((current) =>
@@ -89,42 +127,48 @@ const ProductDetails = () => {
             />
 
             {/* Previous Button */}
-            <button
-              onClick={previousImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-4 py-2 text-xl shadow"
-            >
-              ←
-            </button>
+            {product.images.length > 1 && (
+              <button
+                onClick={previousImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-4 py-2 text-xl shadow"
+              >
+                ←
+              </button>
+            )}
 
             {/* Next Button */}
-            <button
-              onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-4 py-2 text-xl shadow"
-            >
-              →
-            </button>
+            {product.images.length > 1 && (
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-4 py-2 text-xl shadow"
+              >
+                →
+              </button>
+            )}
           </div>
 
           {/* Thumbnails */}
-          <div className="mt-4 flex gap-3 overflow-x-auto">
-            {product.images.map((image, index) => (
-              <button
-                key={image}
-                onClick={() => setCurrentImage(index)}
-                className={`shrink-0 overflow-hidden rounded-lg border-2 ${
-                  currentImage === index
-                    ? "border-black"
-                    : "border-transparent"
-                }`}
-              >
-                <img
-                  src={image}
-                  alt={`${product.name} ${index + 1}`}
-                  className="h-20 w-20 object-cover"
-                />
-              </button>
-            ))}
-          </div>
+          {product.images.length > 1 && (
+            <div className="mt-4 flex gap-3 overflow-x-auto">
+              {product.images.map((image, index) => (
+                <button
+                  key={image}
+                  onClick={() => setCurrentImage(index)}
+                  className={`shrink-0 overflow-hidden rounded-lg border-2 ${
+                    currentImage === index
+                      ? "border-black"
+                      : "border-transparent"
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    className="h-20 w-20 object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Product Information */}
@@ -145,14 +189,36 @@ const ProductDetails = () => {
             {product.description}
           </p>
 
+          {/* Stock Status */}
+          <div className="mt-6">
+            {isOutOfStock ? (
+              <p className="font-semibold text-red-600">
+                Out of Stock
+              </p>
+            ) : isLowStock ? (
+              <p className="font-semibold text-orange-600">
+                Only 1 left
+              </p>
+            ) : (
+              <p className="font-medium text-green-600">
+                {product.stock} left in stock
+              </p>
+            )}
+          </div>
+
+          {/* Add to Cart */}
           <button
             onClick={() => addToCart(product)}
-            className="mt-8 rounded-lg bg-black px-6 py-3 font-semibold text-white"
+            disabled={isOutOfStock}
+            className={`mt-8 rounded-lg px-6 py-3 font-semibold text-white transition ${
+              isOutOfStock
+                ? "cursor-not-allowed bg-gray-300"
+                : "bg-black hover:bg-gray-800"
+            }`}
           >
-            Add to Cart
+            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </button>
         </div>
-
       </div>
     </main>
   );

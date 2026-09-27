@@ -26,20 +26,41 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = (product: IProduct) => {
+    // Product out of stock হলে add করা যাবে না
+    if (product.stock <= 0) {
+      return;
+    }
+
     setCart((currentCart) => {
       const existingProduct = currentCart.find(
         (item) => item.id === product.id
       );
 
+      // Product already cart-এ থাকলে
       if (existingProduct) {
+        // Stock limit reached হলে আর quantity বাড়বে না
+        if (existingProduct.quantity >= product.stock) {
+          return currentCart;
+        }
+
         return currentCart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+              }
             : item
         );
       }
 
-      return [...currentCart, { ...product, quantity: 1 }];
+      // নতুন product cart-এ add
+      return [
+        ...currentCart,
+        {
+          ...product,
+          quantity: 1,
+        },
+      ];
     });
   };
 
@@ -51,11 +72,21 @@ export const CartProvider = ({ children }: CartProviderProps) => {
 
   const increaseQuantity = (productId: number) => {
     setCart((currentCart) =>
-      currentCart.map((item) =>
-        item.id === productId
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
+      currentCart.map((item) => {
+        if (item.id !== productId) {
+          return item;
+        }
+
+        // Stock-এর বেশি quantity নেওয়া যাবে না
+        if (item.quantity >= item.stock) {
+          return item;
+        }
+
+        return {
+          ...item,
+          quantity: item.quantity + 1,
+        };
+      })
     );
   };
 
@@ -64,7 +95,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       currentCart
         .map((item) =>
           item.id === productId
-            ? { ...item, quantity: item.quantity - 1 }
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
             : item
         )
         .filter((item) => item.quantity > 0)

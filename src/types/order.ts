@@ -1,18 +1,18 @@
-import type { IProduct } from "./product";
-
 export interface IOrderItem {
-  product: IProduct;
+  product_id: number;
+  name: string;
+  price: number;
   quantity: number;
 }
 
 export interface IOrder {
-  id: string;
-  customerName: string;
+  id: number;
+  created_at: string;
+  customer_name: string;
   phone: string;
   address: string;
   note: string;
   items: IOrderItem[];
-  totalPrice: number;
+  total_price: number;
   status: "pending" | "confirmed" | "cancelled";
-  createdAt: string;
 }
