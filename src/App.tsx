@@ -10,21 +10,18 @@ import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
+import AdminOrders from "./pages/AdminOrders";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminBanners from "./pages/AdminBanners";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./layouts/AdminLayout";
-import AdminOrders from "./pages/AdminOrders";
-import AdminAnalytics from "./pages/AdminAnalytics";
 
 function App() {
   return (
     <CartProvider>
       <BrowserRouter>
         <Routes>
-          {/* ========================= */}
-          {/* CUSTOMER WEBSITE */}
-          {/* ========================= */}
-
           <Route
             path="/*"
             element={
@@ -33,30 +30,17 @@ function App() {
 
                 <Routes>
                   <Route path="/" element={<Home />} />
-
                   <Route path="/shop" element={<Shop />} />
-
                   <Route path="/product/:id" element={<ProductDetails />} />
-
                   <Route path="/cart" element={<Cart />} />
-
                   <Route path="/checkout" element={<Checkout />} />
-
                   <Route path="/order-success" element={<OrderSuccess />} />
                 </Routes>
               </>
             }
           />
 
-          {/* ========================= */}
-          {/* ADMIN LOGIN */}
-          {/* ========================= */}
-
           <Route path="/admin-login" element={<AdminLogin />} />
-
-          {/* ========================= */}
-          {/* ADMIN DASHBOARD */}
-          {/* ========================= */}
 
           <Route
             path="/admin"
@@ -69,9 +53,16 @@ function App() {
             }
           />
 
-          {/* ========================= */}
-          {/* ADMIN PRODUCTS */}
-          {/* ========================= */}
+          <Route
+            path="/admin/banners"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminBanners />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/admin/products"

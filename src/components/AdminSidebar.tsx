@@ -38,6 +38,25 @@ const AdminSidebar = () => {
       ),
     },
     {
+      label: "Banners",
+      path: "/admin/banners",
+      icon: (
+        <svg
+          className="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+          />
+        </svg>
+      ),
+    },
+    {
       label: "Products",
       path: "/admin/products",
       icon: (
@@ -118,7 +137,6 @@ const AdminSidebar = () => {
 
   return (
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
-      {/* Brand */}
       <div className="shrink-0 border-b border-slate-200 px-6 py-6">
         <NavLink to="/admin" className="block">
           <h1 className="text-2xl font-bold tracking-tight text-teal-800">
@@ -131,7 +149,6 @@ const AdminSidebar = () => {
         </NavLink>
       </div>
 
-      {/* Navigation */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="space-y-2">
           {navItems.map((item) => (
@@ -148,20 +165,17 @@ const AdminSidebar = () => {
               }
             >
               {item.icon}
-
               <span>{item.label}</span>
             </NavLink>
           ))}
         </div>
       </nav>
 
-      {/* Bottom Section */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-4">
         <button
           onClick={handleLogout}
           className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-red-50 hover:text-red-600"
         >
-          {/* Logout Icon */}
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 transition-colors duration-200 group-hover:bg-red-100">
             <svg
               className="h-4 w-4"
@@ -175,13 +189,11 @@ const AdminSidebar = () => {
                 strokeLinejoin="round"
                 d="M10 17l5-5-5-5"
               />
-
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M15 12H3"
               />
-
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
