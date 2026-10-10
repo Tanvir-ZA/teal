@@ -14,6 +14,7 @@ import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminOrders from "./pages/AdminOrders";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 function App() {
   return (
@@ -31,35 +32,17 @@ function App() {
                 <Navbar />
 
                 <Routes>
-                  <Route
-                    path="/"
-                    element={<Home />}
-                  />
+                  <Route path="/" element={<Home />} />
 
-                  <Route
-                    path="/shop"
-                    element={<Shop />}
-                  />
+                  <Route path="/shop" element={<Shop />} />
 
-                  <Route
-                    path="/product/:id"
-                    element={<ProductDetails />}
-                  />
+                  <Route path="/product/:id" element={<ProductDetails />} />
 
-                  <Route
-                    path="/cart"
-                    element={<Cart />}
-                  />
+                  <Route path="/cart" element={<Cart />} />
 
-                  <Route
-                    path="/checkout"
-                    element={<Checkout />}
-                  />
+                  <Route path="/checkout" element={<Checkout />} />
 
-                  <Route
-                    path="/order-success"
-                    element={<OrderSuccess />}
-                  />
+                  <Route path="/order-success" element={<OrderSuccess />} />
                 </Routes>
               </>
             }
@@ -69,10 +52,7 @@ function App() {
           {/* ADMIN LOGIN */}
           {/* ========================= */}
 
-          <Route
-            path="/admin-login"
-            element={<AdminLogin />}
-          />
+          <Route path="/admin-login" element={<AdminLogin />} />
 
           {/* ========================= */}
           {/* ADMIN DASHBOARD */}
@@ -110,6 +90,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminOrders />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminAnalytics />
                 </AdminLayout>
               </ProtectedRoute>
             }
