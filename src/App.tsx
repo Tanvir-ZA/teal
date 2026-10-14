@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetails from "./pages/ProductDetails";
@@ -22,24 +23,30 @@ function App() {
     <CartProvider>
       <BrowserRouter>
         <Routes>
+          {/* Customer Routes (Includes Navbar and Footer) */}
           <Route
             path="/*"
             element={
-              <>
+              <div className="flex min-h-screen flex-col bg-[#F4F2F2]">
                 <Navbar />
 
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/shop" element={<Shop />} />
-                  <Route path="/product/:id" element={<ProductDetails />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/order-success" element={<OrderSuccess />} />
-                </Routes>
-              </>
+                <div className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/shop" element={<Shop />} />
+                    <Route path="/product/:id" element={<ProductDetails />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/order-success" element={<OrderSuccess />} />
+                  </Routes>
+                </div>
+
+                <Footer />
+              </div>
             }
           />
 
+          {/* Admin Routes */}
           <Route path="/admin-login" element={<AdminLogin />} />
 
           <Route

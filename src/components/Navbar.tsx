@@ -6,7 +6,6 @@ const Navbar = () => {
   const { cart } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Cart-e total koyti item ache ta calculate kora
   const totalCartItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   const navLinks = [
@@ -15,13 +14,16 @@ const Navbar = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#428475]/20 bg-[#1A312C] text-white shadow-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-[#0F172A]/95 backdrop-blur-md text-white shadow-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
         
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <span className="rounded-lg bg-[#89D7B7] px-2.5 py-1 text-2xl font-black tracking-wider text-[#1A312C]">
-            TEAL
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0D9488] to-[#0F172A] p-2 text-white shadow-md shadow-[#0D9488]/20 transition group-hover:scale-105">
+            <span className="text-xl font-black tracking-tighter">T</span>
+          </div>
+          <span className="text-2xl font-black tracking-tight text-white">
+            TEAL<span className="text-[#F59E0B]">.</span>
           </span>
         </Link>
 
@@ -32,10 +34,10 @@ const Navbar = () => {
               key={link.path}
               to={link.path}
               className={({ isActive }) =>
-                `text-sm font-semibold transition-colors duration-200 ${
+                `text-sm font-semibold tracking-wide transition-all duration-200 ${
                   isActive
-                    ? "text-[#89D7B7] underline underline-offset-8"
-                    : "text-gray-200 hover:text-[#89D7B7]"
+                    ? "text-[#0D9488] font-bold"
+                    : "text-slate-300 hover:text-white"
                 }`
               }
             >
@@ -44,13 +46,14 @@ const Navbar = () => {
           ))}
         </nav>
 
-        {/* Right Section: Cart Icon & Mobile Menu Toggle */}
-        <div className="flex items-center gap-4">
+        {/* Right Action Icons: Cart & Mobile Toggle */}
+        <div className="flex items-center gap-3">
           
-          {/* Cart Button */}
+          {/* Cart Icon Button */}
           <Link
             to="/cart"
-            className="group relative flex items-center gap-2 rounded-xl bg-[#428475] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#89D7B7] hover:text-[#1A312C]"
+            className="relative flex items-center justify-center rounded-xl bg-slate-800/80 p-2.5 text-slate-200 transition hover:bg-[#0D9488] hover:text-white hover:shadow-lg hover:shadow-[#0D9488]/20"
+            aria-label="View Cart"
           >
             <svg
               className="h-5 w-5"
@@ -65,21 +68,20 @@ const Navbar = () => {
                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
               />
             </svg>
-            <span>Cart</span>
 
-            {/* Cart Count Badge */}
+            {/* Floating Cart Count Badge */}
             {totalCartItems > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FFF4E1] text-xs font-extrabold text-[#1A312C] shadow">
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#F59E0B] text-[11px] font-extrabold text-slate-950 shadow-md">
                 {totalCartItems}
               </span>
             )}
           </Link>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Hamburger Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-lg p-2 text-gray-300 hover:bg-[#428475] hover:text-white md:hidden"
-            aria-label="Toggle menu"
+            className="rounded-xl bg-slate-800/80 p-2.5 text-slate-300 hover:bg-slate-700 hover:text-white md:hidden"
+            aria-label="Toggle Navigation"
           >
             <svg
               className="h-6 w-6"
@@ -107,19 +109,19 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile Slide Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="border-t border-[#428475]/30 bg-[#1A312C] px-4 py-4 md:hidden space-y-3">
+        <div className="border-t border-slate-800 bg-[#0F172A] px-4 py-4 md:hidden space-y-2">
           {navLinks.map((link) => (
             <NavLink
               key={link.path}
               to={link.path}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `block rounded-lg px-3 py-2 text-base font-medium transition ${
+                `block rounded-xl px-4 py-2.5 text-base font-semibold transition ${
                   isActive
-                    ? "bg-[#428475] text-white"
-                    : "text-gray-200 hover:bg-[#428475]/50"
+                    ? "bg-[#0D9488] text-white"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`
               }
             >

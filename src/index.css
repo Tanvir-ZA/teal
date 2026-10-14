@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #FAFAFA;
+    color: #0F172A;
+    -webkit-font-smoothing: antialiased;
+  }
+}
