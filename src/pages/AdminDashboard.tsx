@@ -1,640 +1,241 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { IOrder } from "../types/order";
-import type { IProduct } from "../types/product";
 
-interface IProductAnalytics {
-  product_id: number;
-  views: number;
-  add_to_cart: number;
+interface DashboardStats {
+  totalOrders: number;
+  pendingOrders: number;
+  totalProducts: number;
+  activeProducts: number;
+  totalViews: number;
+  totalAddToCart: number;
 }
 
 const AdminDashboard = () => {
-  const [orders, setOrders] = useState<IOrder[]>([]);
-  const [products, setProducts] = useState<IProduct[]>([]);
-  const [analytics, setAnalytics] = useState<IProductAnalytics[]>([]);
-
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalProducts: 0,
+    activeProducts: 0,
+    totalViews: 0,
+    totalAddToCart: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchDashboardData = async (
-    isRefresh = false
-  ) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+  const fetchDashboardStats = async () => {
+    setLoading(true);
 
-    const [
-      ordersResponse,
-      productsResponse,
-      analyticsResponse,
-    ] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        }),
+    try {
+      // 1. Fetch Orders Stats
+      const { data: orders } = await supabase.from("orders").select("id, status");
+      const totalOrders = orders?.length || 0;
+      const pendingOrders = orders?.filter((o) => o.status === "pending").length || 0;
 
-      supabase
-        .from("products")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        }),
+      // 2. Fetch Products Stats
+      const { data: products } = await supabase.from("products").select("id, is_active");
+      const totalProducts = products?.length || 0;
+      const activeProducts = products?.filter((p) => p.is_active).length || 0;
 
-      supabase
+      // 3. Fetch Analytics Stats
+      const { data: analytics } = await supabase
         .from("product_analytics")
-        .select(
-          "product_id, views, add_to_cart"
-        ),
-    ]);
+        .select("views, add_to_cart");
 
-    if (ordersResponse.error) {
-      console.log(
-        "DASHBOARD ORDERS ERROR:",
-        ordersResponse.error
-      );
-    }
+      const totalViews = analytics?.reduce((sum, item) => sum + (item.views || 0), 0) || 0;
+      const totalAddToCart =
+        analytics?.reduce((sum, item) => sum + (item.add_to_cart || 0), 0) || 0;
 
-    if (productsResponse.error) {
-      console.log(
-        "DASHBOARD PRODUCTS ERROR:",
-        productsResponse.error
-      );
-    }
-
-    if (analyticsResponse.error) {
-      console.log(
-        "DASHBOARD ANALYTICS ERROR:",
-        analyticsResponse.error
-      );
-    }
-
-    setOrders(ordersResponse.data || []);
-    setProducts(productsResponse.data || []);
-    setAnalytics(analyticsResponse.data || []);
-
-    if (isRefresh) {
-      setRefreshing(false);
-    } else {
+      setStats({
+        totalOrders,
+        pendingOrders,
+        totalProducts,
+        activeProducts,
+        totalViews,
+        totalAddToCart,
+      });
+    } catch (err) {
+      console.log("DASHBOARD FETCH ERROR:", err);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardStats();
   }, []);
 
-  const totalOrders = orders.length;
-
-  const totalProducts = products.length;
-
-  const activeProducts = products.filter(
-    (product) => product.is_active
-  ).length;
-
-  const pendingOrders = orders.filter(
-    (order) => order.status === "pending"
-  ).length;
-
-  const totalViews = analytics.reduce(
-    (total, item) => total + item.views,
-    0
-  );
-
-  const totalAddToCart = analytics.reduce(
-    (total, item) => total + item.add_to_cart,
-    0
-  );
-
-  const getProductAnalytics = (
-    productId: number
-  ) => {
-    return (
-      analytics.find(
-        (item) => item.product_id === productId
-      ) || {
-        product_id: productId,
-        views: 0,
-        add_to_cart: 0,
-      }
-    );
-  };
-
-  const topProducts = [...products]
-    .map((product) => ({
-      product,
-      analytics: getProductAnalytics(
-        product.id
-      ),
-    }))
-    .sort(
-      (a, b) =>
-        b.analytics.views -
-        a.analytics.views
-    )
-    .slice(0, 5);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-slate-500">
-          Loading dashboard...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <section>
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="space-y-8">
+      {/* Title */}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-teal-600">
-            Teal Admin
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            Dashboard
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Overview of your store activity.
+          <h1 className="text-3xl font-black text-[#1D2128]">Admin Overview</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Welcome back! Here is a live summary of your store activities.
           </p>
         </div>
 
         <button
-          onClick={() =>
-            fetchDashboardData(true)
-          }
-          disabled={refreshing}
-          className="flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={fetchDashboardStats}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#215E61] px-5 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-[#FF9E20] hover:text-[#1D2128] disabled:opacity-50"
         >
-          <svg
-            className={`h-4 w-4 ${
-              refreshing ? "animate-spin" : ""
-            }`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M20 11a8.1 8.1 0 0 0-14.7-4.7L4 8"
-            />
-
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 4v4h4"
-            />
-
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 13a8.1 8.1 0 0 0 14.7 4.7L20 16"
-            />
-
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M20 20v-4h-4"
-            />
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-
-          {refreshing
-            ? "Refreshing..."
-            : "Refresh"}
+          Refresh Stats
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Orders */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Total Orders
-              </p>
-
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {totalOrders}
-              </h2>
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 3h12v18H6z"
-                />
-
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 8h6M9 12h6M9 16h3"
-                />
+      {/* Stats Cards Grid */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        
+        {/* Total Orders Card */}
+        <div className="rounded-3xl border-2 border-[#1D2128]/10 bg-white p-6 shadow-md space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Orders Summary
+            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
           </div>
-
-          <Link
-            to="/admin/orders"
-            className="mt-5 inline-block text-sm font-semibold text-teal-700 hover:text-teal-800"
-          >
-            View orders →
-          </Link>
-        </div>
-
-        {/* Products */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Total Products
-              </p>
-
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {totalProducts}
-              </h2>
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 3h12v18H6z"
-                />
-
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 7h6M9 11h6M9 15h4"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <Link
-            to="/admin/products"
-            className="mt-5 inline-block text-sm font-semibold text-teal-700 hover:text-teal-800"
-          >
-            Manage products →
-          </Link>
-        </div>
-
-        {/* Views */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Product Views
-              </p>
-
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {totalViews}
-              </h2>
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
-                />
-
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="2.5"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <Link
-            to="/admin/analytics"
-            className="mt-5 inline-block text-sm font-semibold text-teal-700 hover:text-teal-800"
-          >
-            View analytics →
-          </Link>
-        </div>
-
-        {/* Add to Cart */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Add to Cart
-              </p>
-
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {totalAddToCart}
-              </h2>
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H6"
-                />
-
-                <circle
-                  cx="10"
-                  cy="20"
-                  r="1"
-                />
-
-                <circle
-                  cx="18"
-                  cy="20"
-                  r="1"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <Link
-            to="/admin/analytics"
-            className="mt-5 inline-block text-sm font-semibold text-teal-700 hover:text-teal-800"
-          >
-            View analytics →
-          </Link>
-        </div>
-      </div>
-
-      {/* Secondary Stats */}
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Active Products
-          </p>
-
-          <div className="mt-3 flex items-end gap-3">
-            <h2 className="text-3xl font-bold text-slate-900">
-              {activeProducts}
-            </h2>
-
-            <span className="mb-1 text-sm text-slate-500">
-              of {totalProducts} total
+          <div className="flex items-baseline justify-between">
+            <p className="text-3xl font-black text-[#1D2128]">
+              {loading ? "..." : stats.totalOrders}
+            </p>
+            <span className="text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+              {stats.pendingOrders} Pending
             </span>
           </div>
+          <Link
+            to="/admin/orders"
+            className="block text-xs font-bold text-[#215E61] hover:underline pt-2 border-t border-gray-100"
+          >
+            Manage Orders →
+          </Link>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Pending Orders
-          </p>
-
-          <div className="mt-3 flex items-end gap-3">
-            <h2 className="text-3xl font-bold text-amber-600">
-              {pendingOrders}
-            </h2>
-
-            <Link
-              to="/admin/orders"
-              className="mb-1 text-sm font-semibold text-teal-700 hover:text-teal-800"
-            >
-              Review orders →
-            </Link>
+        {/* Products Card */}
+        <div className="rounded-3xl border-2 border-[#1D2128]/10 bg-white p-6 shadow-md space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Products Inventory
+            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Recent Orders + Top Products */}
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        {/* Recent Orders */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-            <div>
-              <h2 className="font-bold text-slate-900">
-                Recent Orders
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Latest customer orders
-              </p>
-            </div>
-
-            <Link
-              to="/admin/orders"
-              className="text-sm font-semibold text-teal-700 hover:text-teal-800"
-            >
-              View all
-            </Link>
+          <div className="flex items-baseline justify-between">
+            <p className="text-3xl font-black text-[#1D2128]">
+              {loading ? "..." : stats.totalProducts}
+            </p>
+            <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              {stats.activeProducts} Active
+            </span>
           </div>
-
-          {orders.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-sm text-slate-500">
-                No orders yet.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {orders
-                .slice(0, 5)
-                .map((order) => (
-                  <div
-                    key={order.id}
-                    className="flex items-center justify-between gap-4 px-6 py-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-800">
-                        {order.customer_name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        Order #{order.id}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-800">
-                        ৳{order.total_price}
-                      </p>
-
-                      <span
-                        className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                          order.status ===
-                          "confirmed"
-                            ? "bg-green-50 text-green-700"
-                            : order.status ===
-                              "cancelled"
-                            ? "bg-red-50 text-red-700"
-                            : "bg-amber-50 text-amber-700"
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top Products */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-            <div>
-              <h2 className="font-bold text-slate-900">
-                Product Performance
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Most viewed products
-              </p>
-            </div>
-
-            <Link
-              to="/admin/analytics"
-              className="text-sm font-semibold text-teal-700 hover:text-teal-800"
-            >
-              View all
-            </Link>
-          </div>
-
-          {topProducts.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-sm text-slate-500">
-                No products yet.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {topProducts.map(
-                ({
-                  product,
-                  analytics: productAnalytics,
-                }) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center gap-4 px-6 py-4"
-                  >
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">
-                        No image
-                      </div>
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-800">
-                        {product.name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {product.category}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-800">
-                        {productAnalytics.views}
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        views
-                      </p>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="font-bold text-slate-900">
-          Quick Actions
-        </h2>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <Link
             to="/admin/products"
-            className="rounded-xl border border-slate-200 px-5 py-4 transition hover:border-teal-300 hover:bg-teal-50"
+            className="block text-xs font-bold text-[#215E61] hover:underline pt-2 border-t border-gray-100"
           >
-            <p className="font-semibold text-slate-800">
-              Manage Products
-            </p>
+            Manage Products →
+          </Link>
+        </div>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Add, edit or remove products.
-            </p>
+        {/* Traffic & Analytics Card */}
+        <div className="rounded-3xl border-2 border-[#1D2128]/10 bg-white p-6 shadow-md space-y-3 sm:col-span-2 lg:col-span-1">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Views & Cart Additions
+            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-2xl font-black text-[#1D2128]">
+                {loading ? "..." : stats.totalViews}
+              </p>
+              <p className="text-xs text-slate-500 font-bold">Total Views</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-[#FF9E20]">
+                {loading ? "..." : stats.totalAddToCart}
+              </p>
+              <p className="text-xs text-slate-500 font-bold">Cart Additions</p>
+            </div>
+          </div>
+          <Link
+            to="/admin/analytics"
+            className="block text-xs font-bold text-[#215E61] hover:underline pt-2 border-t border-gray-100"
+          >
+            View Analytics Details →
+          </Link>
+        </div>
+
+      </div>
+
+      {/* Quick Actions Panel */}
+      <div className="rounded-3xl border-2 border-[#1D2128]/10 bg-white p-6 shadow-md space-y-4">
+        <h2 className="text-lg font-black text-[#1D2128]">Quick Store Management</h2>
+        
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          
+          <Link
+            to="/admin/banners"
+            className="flex items-center gap-3.5 rounded-2xl border border-gray-200 p-4 transition hover:border-[#215E61] hover:bg-[#215E61]/5"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#215E61]/10 text-[#215E61]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-extrabold text-[#1D2128] text-sm">Banner Carousel</h4>
+              <p className="text-xs text-slate-500">Upload & order banners</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/products"
+            className="flex items-center gap-3.5 rounded-2xl border border-gray-200 p-4 transition hover:border-[#215E61] hover:bg-[#215E61]/5"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#215E61]/10 text-[#215E61]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-extrabold text-[#1D2128] text-sm">Add New Product</h4>
+              <p className="text-xs text-slate-500">Upload images & set stock</p>
+            </div>
           </Link>
 
           <Link
             to="/admin/orders"
-            className="rounded-xl border border-slate-200 px-5 py-4 transition hover:border-teal-300 hover:bg-teal-50"
+            className="flex items-center gap-3.5 rounded-2xl border border-gray-200 p-4 transition hover:border-[#215E61] hover:bg-[#215E61]/5"
           >
-            <p className="font-semibold text-slate-800">
-              Manage Orders
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Review and update customer orders.
-            </p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#215E61]/10 text-[#215E61]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-extrabold text-[#1D2128] text-sm">Update Orders</h4>
+              <p className="text-xs text-slate-500">Confirm or cancel orders</p>
+            </div>
           </Link>
 
-          <Link
-            to="/admin/analytics"
-            className="rounded-xl border border-slate-200 px-5 py-4 transition hover:border-teal-300 hover:bg-teal-50"
-          >
-            <p className="font-semibold text-slate-800">
-              View Analytics
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Track product performance.
-            </p>
-          </Link>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

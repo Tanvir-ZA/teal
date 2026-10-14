@@ -1,80 +1,62 @@
 import { Link } from "react-router-dom";
 import type { IProduct } from "../types/product";
-import { useCart } from "../context/CartContext";
 
 interface ProductCardProps {
-    product: IProduct;
+  product: IProduct;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-    const { addToCart } = useCart();
+  const isOutOfStock = product.stock === 0;
 
-    const isOutOfStock = product.stock === 0;
-    const isLowStock = product.stock === 1;
+  return (
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border-2 border-[#1D2128]/10 bg-white p-4 shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-[#215E61] hover:shadow-xl">
+      <Link to={`/product/${product.id}`} className="block flex-1">
+        <div>
+          {/* Product Image */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-[#F4F2F2]">
+            <img
+              src={product.images[0] || "https://via.placeholder.com/300x300"}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
 
-    return (
-        <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-            <Link to={`/product/${product.id}`}>
-                <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="h-72 w-full cursor-pointer object-cover transition duration-300 hover:scale-105"
-                />
-            </Link>
+            {isOutOfStock && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#1D2128]/70 backdrop-blur-[2px]">
+                <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white shadow-md uppercase tracking-wider">
+                  Out of Stock
+                </span>
+              </div>
+            )}
+          </div>
 
-            <div className="p-5">
-                <p className="text-sm text-gray-500">
-                    {product.category}
-                </p>
-
-                <h3 className="mt-1 text-xl font-semibold">
-                    {product.name}
-                </h3>
-
-                <p className="mt-2 text-lg font-bold">
-                    ৳{product.price}
-                </p>
-
-                {/* Stock Status */}
-                <div className="mt-2">
-                    {isOutOfStock ? (
-                        <p className="text-sm font-semibold text-red-600">
-                            Out of Stock
-                        </p>
-                    ) : isLowStock ? (
-                        <p className="text-sm font-semibold text-orange-600">
-                            Only 1 left
-                        </p>
-                    ) : (
-                        <p className="text-sm font-medium text-green-600">
-                            {product.stock} left
-                        </p>
-                    )}
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                    <Link
-                        to={`/product/${product.id}`}
-                        className="flex-1 rounded-lg bg-black py-3 text-center text-sm font-semibold text-white"
-                    >
-                        View Product
-                    </Link>
-
-                    <button
-                        onClick={() => addToCart(product)}
-                        disabled={isOutOfStock}
-                        className={`flex-1 rounded-lg py-3 text-sm font-semibold transition ${
-                            isOutOfStock
-                                ? "cursor-not-allowed bg-gray-200 text-gray-400"
-                                : "border border-black hover:bg-black hover:text-white"
-                        }`}
-                    >
-                        {isOutOfStock ? "Out of Stock" : "Add to Cart"}
-                    </button>
-                </div>
-            </div>
+          {/* Product Info */}
+          <div className="mt-4 space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#215E61]">
+              {product.category}
+            </span>
+            <h3 className="text-base font-black text-[#1D2128] line-clamp-1 group-hover:text-[#215E61] transition-colors">
+              {product.name}
+            </h3>
+            <p className="text-lg font-black text-[#FF9E20]">
+              ৳{product.price}
+            </p>
+          </div>
         </div>
-    );
+      </Link>
+
+      {/* Button */}
+      <div className="mt-4">
+        <Link
+          to={`/product/${product.id}`}
+          className="block w-full rounded-xl bg-[#1D2128] py-2.5 text-center text-xs font-black text-white transition hover:bg-[#215E61]"
+        >
+          View Details
+        </Link>
+      </div>
+    </div>
+  );
 };
 
 export default ProductCard;

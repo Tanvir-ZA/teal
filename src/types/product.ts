@@ -1,14 +1,17 @@
 export interface IProduct {
   id: number;
-  created_at?: string;
-
   name: string;
-  price: number;
   category: string;
-  description: string;
-
+  price: number;
+  stock: number; // Total combined stock
+  sizes_stock?: Record<string, number>; // e.g. { "S": 3, "M": 4, "L": 0, "XL": 2 }
   images: string[];
-
-  stock: number;
+  description?: string;
   is_active: boolean;
+  created_at?: string;
+}
+
+export interface ICartItem extends IProduct {
+  quantity: number;
+  selectedSize?: string;
 }
